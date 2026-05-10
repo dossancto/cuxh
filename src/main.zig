@@ -85,6 +85,10 @@ fn parse_curl(curl_string: []const u8) CurlMetadata {
         if (eql(part, "-H") or eql(part, "--header")) {}
     }
 
+    if (eql(metadata.method, "")) {
+        metadata.method = "GET";
+    }
+
     return metadata;
 }
 
@@ -134,4 +138,13 @@ test "parse_curl" {
 
     try std.testing.expect(eql(metadata.method, "POST"));
     try std.testing.expect(eql(metadata.url, "https://httpbin.org/post"));
+}
+
+test "parse_curl with no method" {
+    const curl_string = "curl \"https://httpbin.org/get\" -H  \"accept: application/json\" -H 'Authorization: Bearer 123'";
+
+    const metadata = parse_curl(curl_string);
+
+    try std.testing.expect(eql(metadata.method, "GET"));
+    try std.testing.expect(eql(metadata.url, "https://httpbin.org/get"));
 }
