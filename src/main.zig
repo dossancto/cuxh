@@ -46,14 +46,44 @@ pub fn main(init: std.process.Init) !void {
     std.debug.print("curl_string: {s}\n", .{curl_string});
 }
 
-fn parse_curl(curl_string: []const u8) CurlMetadata {
-    _ = std.mem.splitScalar(u8, curl_string, ' ');
+fn eql(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
 
-    const metadata = CurlMetadata{
-        .method = "",
-        .url = "",
-        .Headers = std.ArrayList([][]const u8).init(std.heap.page_allocator),
-    };
+fn is_url(part: []const u8) bool {
+    return std.mem.startsWith(u8, part, "http") or std.mem.startsWith(u8, part, "\"http");
+}
+
+fn clean_url(url: []const u8) []const u8 {
+    if (std.mem.startsWith(u8, url, "\"") and std.mem.endsWith(u8, url, "\"")) {
+        return url[1 .. url.len - 1];
+    }
+    return url;
+}
+
+fn parse_curl(curl_string: []const u8) CurlMetadata {
+    var parts = std.mem.splitScalar(u8, curl_string, ' ');
+
+    var metadata = CurlMetadata{ .method = "", .url = "", .Headers = .empty };
+
+    while (parts.next()) |part| {
+        if (eql(part, "curl")) {
+            continue;
+        }
+
+        if (eql(part, "-X")) {
+            const method = parts.next() orelse break;
+            metadata.method = method;
+            continue;
+        }
+
+        if (is_url(part)) {
+            metadata.url = clean_url(part);
+            continue;
+        }
+
+        if (eql(part, "-H") or eql(part, "--header")) {}
+    }
 
     return metadata;
 }
@@ -89,12 +119,19 @@ test "can split string" {
     try std.testing.expect(count == 3);
 }
 
-// test "parse_curl" {
-//     const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
-//
-//     _ = parse_curl(curl_string);
-//
-//     // const is_post = std.mem.eql(u8, metadata.method, "POST");
-//     //
-//     // try std.testing.expect(is_post);
-// }
+test "Is url" {
+    try std.testing.expect(is_url("http://example.com"));
+    try std.testing.expect(is_url("https://example.com"));
+    try std.testing.expect(is_url("\"http://example.com\""));
+    try std.testing.expect(is_url("\"https://example.com\""));
+    try std.testing.expect(is_url("ftp://example.com") == false);
+}
+
+test "parse_curl" {
+    const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+
+    const metadata = parse_curl(curl_string);
+
+    try std.testing.expect(eql(metadata.method, "POST"));
+    try std.testing.expect(eql(metadata.url, "https://httpbin.org/post"));
+}
