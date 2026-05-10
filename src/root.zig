@@ -1,6 +1,15 @@
 //! By convention, root.zig is the root source file when making a package.
 const std = @import("std");
+const url = @import("url.zig");
+const utils = @import("utils.zig");
+const curl_handler = @import("curl_handler.zig");
 const Io = std.Io;
+
+test {
+    _ = curl_handler;
+    _ = url;
+    _ = utils;
+}
 
 /// This is a documentation comment to explain the `printAnotherMessage` function below.
 ///
