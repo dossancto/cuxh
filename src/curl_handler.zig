@@ -182,7 +182,7 @@ test "Error on invalid url" {
 
     const metadata = CurlMetadata.parse_curl(curl_string);
 
-    try std.testing.expect(metadata == error.InvalidURL);
+    try std.testing.expect(metadata == error.CantFindUrl);
 }
 
 test "Error on invalid curl string" {

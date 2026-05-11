@@ -28,7 +28,6 @@ pub const HttpBody = struct {
 
 test "HttpBody from string" {
     const body = HttpBody.from_string("Hello, World!").?;
-    std.debug.print("HttpBody content: {s}\n", .{body.content});
     try std.testing.expect(utils.eql(body.content, "Hello, World!"));
 }
 

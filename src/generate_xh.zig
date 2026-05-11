@@ -47,26 +47,16 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     return trimmed;
 }
 
-fn join_string() ![]const u8 {
-    const gpa = std.heap.page_allocator;
-
-    var builder = std.ArrayList(u8).empty;
-
-    try builder.appendSlice(gpa, "Hello");
-    try builder.append(gpa, ' ');
-    try builder.appendSlice(gpa, "Zig!");
-
-    const res = builder.items;
-
-    return res;
-}
-
 test "Generate xh command" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
     const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
-    const xh_command = try curl_to_xh(metadata);
+    const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST https://httpbin.org/post --raw '{\"property1\": \"1\"}' 'accept':'application/json' 'Authorization':'Bearer 123'";
+    const expected_xh_command = "xh POST https://httpbin.org/post 'accept':'application/json' 'Authorization':'Bearer 123' --raw '{\"property1\": \"1\"}'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
