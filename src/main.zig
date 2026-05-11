@@ -32,10 +32,8 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Received curl command: {s}\n", .{curl_string});
     const curl_metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
-    std.debug.print("curl metadata: {s}\n", .{curl_metadata.body.content});
 
     const xh_command = try xh_manager.curl_to_xh(curl_metadata, allocator);
-    std.debug.print("Generated xh command: {s}\n", .{xh_command});
 
     var threaded: std.Io.Threaded = .init(allocator, .{});
     defer threaded.deinit();

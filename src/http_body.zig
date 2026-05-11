@@ -1,3 +1,4 @@
+const std = @import("std");
 const utils = @import("utils.zig");
 
 pub const HttpBody = struct {
@@ -24,3 +25,14 @@ pub const HttpBody = struct {
         return false;
     }
 };
+
+test "HttpBody from string" {
+    const body = HttpBody.from_string("Hello, World!").?;
+    std.debug.print("HttpBody content: {s}\n", .{body.content});
+    try std.testing.expect(utils.eql(body.content, "Hello, World!"));
+}
+
+test "HttpBody from json string" {
+    const body = HttpBody.from_string("'{\"property1\": \"1\"}'").?;
+    try std.testing.expect(utils.eql(body.content, "{\"property1\": \"1\"}"));
+}
