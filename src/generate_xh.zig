@@ -1,46 +1,42 @@
 const curl_handler = @import("curl_handler.zig");
 const std = @import("std");
 
-pub fn curl_to_xh(curl: curl_handler.CurlMetadata) ![]const u8 {
-    // 1. You need an allocator to manage memory
-    const gpa = std.heap.page_allocator;
-
-    // 2. Initialize the "StringBuilder"
+pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator) ![]const u8 {
     var builder = std.ArrayList(u8).empty;
 
-    try builder.appendSlice(gpa, "xh");
-    try builder.append(gpa, ' ');
+    try builder.appendSlice(allocator, "xh");
+    try builder.append(allocator, ' ');
 
-    try builder.appendSlice(gpa, curl.method);
-    try builder.append(gpa, ' ');
+    try builder.appendSlice(allocator, curl.method);
+    try builder.append(allocator, ' ');
 
-    try builder.appendSlice(gpa, curl.url.url);
-    try builder.append(gpa, ' ');
-
-    try builder.appendSlice(gpa, "--raw");
-    try builder.append(gpa, ' ');
-
-    const formated_body = try std.fmt.allocPrint(
-        gpa,
-        "'{s}'",
-        .{curl.body.content},
-    );
-    defer gpa.free(formated_body);
-
-    try builder.appendSlice(gpa, formated_body);
-    try builder.append(gpa, ' ');
+    try builder.appendSlice(allocator, curl.url.url);
+    try builder.append(allocator, ' ');
 
     for (curl.headers.items) |header| {
         const formated_header = try std.fmt.allocPrint(
-            gpa,
+            allocator,
             "'{s}':'{s}'",
             .{ header.name, header.value },
         );
-        defer gpa.free(formated_header);
+        defer allocator.free(formated_header);
 
-        try builder.appendSlice(gpa, formated_header);
-        try builder.append(gpa, ' ');
+        try builder.appendSlice(allocator, formated_header);
+        try builder.append(allocator, ' ');
     }
+
+    try builder.appendSlice(allocator, "--raw");
+    try builder.append(allocator, ' ');
+
+    const formated_body = try std.fmt.allocPrint(
+        allocator,
+        "'{s}'",
+        .{curl.body.content},
+    );
+    defer allocator.free(formated_body);
+
+    try builder.appendSlice(allocator, formated_body);
+    try builder.append(allocator, ' ');
 
     const res = builder.items;
 
@@ -50,13 +46,10 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata) ![]const u8 {
 }
 
 fn join_string() ![]const u8 {
-    // 1. You need an allocator to manage memory
     const gpa = std.heap.page_allocator;
 
-    // 2. Initialize the "StringBuilder"
     var builder = std.ArrayList(u8).empty;
 
-    // 3. Append strings or characters
     try builder.appendSlice(gpa, "Hello");
     try builder.append(gpa, ' ');
     try builder.appendSlice(gpa, "Zig!");
