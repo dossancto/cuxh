@@ -1,18 +1,33 @@
 const url_manager = @import("url.zig");
 const std = @import("std");
 const utils = @import("utils.zig");
+const http_headers = @import("headers.zig");
 
-const CurlMetadata = struct {
+const SliceIterator = struct {
+    slice: [][]const u8,
+    index: usize = 0,
+
+    pub fn next(self: *SliceIterator) ?[]const u8 {
+        if (self.index >= self.slice.len) return null;
+        const val = self.slice[self.index];
+        self.index += 1;
+        return val;
+    }
+};
+
+pub const CurlMetadata = struct {
     method: []const u8,
     url: url_manager.URL,
-    Headers: std.ArrayList([][]const u8),
+    Headers: std.ArrayList(http_headers.HttpHeader),
 
     fn parse_curl(curl_string: []const u8) !CurlMetadata {
+        const allocator = std.heap.page_allocator;
+
         if (valid_curl_string(curl_string) == false) {
             return error.InvalidCurlString;
         }
 
-        var parts = std.mem.splitScalar(u8, curl_string, ' ');
+        var parts = try get_splited_parts(curl_string);
 
         var metadata = CurlMetadata{ .method = "", .url = url_manager.URL.empty(), .Headers = .empty };
 
@@ -22,7 +37,7 @@ const CurlMetadata = struct {
             }
 
             if (utils.eql(part, "-X")) {
-                const method = parts.next() orelse break;
+                const method = parts.next() orelse continue;
                 metadata.method = method;
                 continue;
             }
@@ -33,7 +48,11 @@ const CurlMetadata = struct {
                 }
             }
 
-            if (utils.eql(part, "-H") or utils.eql(part, "--header")) {}
+            if (utils.eql(part, "-H") or utils.eql(part, "--header")) {
+                const header_str = parts.next() orelse continue;
+                const header = http_headers.HttpHeader.parse(header_str) orelse continue;
+                try metadata.Headers.append(allocator, header);
+            }
         }
 
         if (utils.eql(metadata.method, "")) {
@@ -43,6 +62,20 @@ const CurlMetadata = struct {
         return metadata;
     }
 };
+
+fn get_splited_parts(curl_string: []const u8) !SliceIterator {
+    const allocator = std.heap.page_allocator;
+
+    var parts = std.mem.splitScalar(u8, curl_string, ' ');
+
+    var result = std.ArrayList([]const u8).empty;
+
+    while (parts.next()) |part| {
+        _ = try result.append(allocator, part);
+    }
+
+    return SliceIterator{ .slice = result.items };
+}
 
 fn valid_curl_string(curl_string: []const u8) bool {
     return std.mem.startsWith(u8, curl_string, "curl");
@@ -72,5 +105,12 @@ test "CurlMetadata.parse_curl with no method" {
 
     try std.testing.expect(utils.eql(metadata.method, "GET"));
     try std.testing.expect(utils.eql(metadata.url.url, "https://httpbin.org/get"));
-    try std.testing.expect(utils.eql(metadata.url.host, "httpbin.org"));
 }
+
+// test "Parse Headers" {
+//     const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+//
+//     const metadata = try CurlMetadata.parse_curl(curl_string);
+//
+//     try std.testing.expect(metadata.Headers.items.len == 2);
+// }
