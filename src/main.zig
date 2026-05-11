@@ -18,6 +18,13 @@ pub fn main(init: std.process.Init) !void {
 
     var first_item = true;
 
+    const args_len = args.len;
+
+    if(args_len < 2) {
+        std.debug.print("Usage: {s} \"<curl command>\"\n", .{args[0]});
+        return;
+    }
+
     for (args) |arg| {
         if (first_item) {
             first_item = false;
