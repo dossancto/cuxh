@@ -48,6 +48,11 @@ test "parse url" {
     try std.testing.expect(parsed_url.port == 8080);
 }
 
+test "parse without port" {
+    const parsed_url = URL.parse("https://localhost/path/to/resource") orelse unreachable;
+    try std.testing.expect(parsed_url.port == null);
+}
+
 test "Is url" {
     try std.testing.expect(is_url("http://example.com"));
     try std.testing.expect(is_url("https://example.com"));
