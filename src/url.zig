@@ -25,7 +25,8 @@ pub const URL = struct {
 };
 
 pub fn is_url(text: []const u8) bool {
-    return std.mem.startsWith(u8, text, "http") or std.mem.startsWith(u8, text, "\"http");
+    const clean_text = utils.clean_escape(text);
+    return std.mem.startsWith(u8, clean_text, "http") or std.mem.startsWith(u8, clean_text, "\"http");
 }
 
 test "parse url" {
@@ -41,5 +42,6 @@ test "Is url" {
     try std.testing.expect(is_url("https://example.com"));
     try std.testing.expect(is_url("\"http://example.com\""));
     try std.testing.expect(is_url("\"https://example.com\""));
+    try std.testing.expect(is_url("ftp://example.com") == false);
     try std.testing.expect(is_url("ftp://example.com") == false);
 }

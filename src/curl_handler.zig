@@ -83,7 +83,7 @@ pub const CurlMetadata = struct {
         }
 
         if (url_manager.is_url(metadata.url.url) == false) {
-            return error.InvalidURL;
+            return error.CantFindUrl;
         }
 
         return metadata;

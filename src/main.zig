@@ -30,7 +30,6 @@ pub fn main(init: std.process.Init) !void {
 
     const curl_string = builder.items;
 
-    std.debug.print("Received curl command: {s}\n", .{curl_string});
     const curl_metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
 
     const xh_command = try xh_manager.curl_to_xh(curl_metadata, allocator);
