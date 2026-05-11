@@ -20,7 +20,7 @@ pub fn main(init: std.process.Init) !void {
 
     const args_len = args.len;
 
-    if(args_len < 2) {
+    if (args_len < 2) {
         std.debug.print("Usage: {s} \"<curl command>\"\n", .{args[0]});
         return;
     }
@@ -37,7 +37,7 @@ pub fn main(init: std.process.Init) !void {
 
     const curl_string = builder.items;
 
-    const curl_metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
+    const curl_metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
 
     const xh_command = try xh_manager.curl_to_xh(curl_metadata, allocator);
 
