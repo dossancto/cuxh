@@ -65,13 +65,45 @@ pub const CurlMetadata = struct {
 
 fn get_splited_parts(curl_string: []const u8) !SliceIterator {
     const allocator = std.heap.page_allocator;
-
-    var parts = std.mem.splitScalar(u8, curl_string, ' ');
-
     var result = std.ArrayList([]const u8).empty;
 
-    while (parts.next()) |part| {
-        _ = try result.append(allocator, part);
+    var current_token = std.ArrayList(u8).empty;
+
+    var escaped = false;
+    var in_double_quotes = false;
+    var in_single_quotes = false;
+
+    for (curl_string) |c| {
+        if (escaped) {
+            current_token.append(allocator, c) catch return error.AllocationFailed;
+            escaped = false;
+            continue;
+        }
+
+        if (c == '\\') {
+            if (in_single_quotes) {
+                current_token.append(allocator, c) catch return error.AllocationFailed;
+            } else {
+                escaped = true;
+            }
+        } else if (c == '\"' and !in_single_quotes) {
+            in_double_quotes = !in_double_quotes;
+            current_token.append(allocator, c) catch return error.AllocationFailed;
+        } else if (c == '\'' and !in_double_quotes) {
+            in_single_quotes = !in_single_quotes;
+            current_token.append(allocator, c) catch return error.AllocationFailed;
+        } else if (c == ' ' and !in_double_quotes and !in_single_quotes) {
+            if (current_token.items.len > 0) {
+                try result.append(allocator, current_token.items);
+                current_token = std.ArrayList(u8).empty;
+            }
+        } else {
+            current_token.append(allocator, c) catch return error.AllocationFailed;
+        }
+    }
+
+    if (current_token.items.len > 0) {
+        try result.append(allocator, current_token.items);
     }
 
     return SliceIterator{ .slice = result.items };
@@ -107,10 +139,10 @@ test "CurlMetadata.parse_curl with no method" {
     try std.testing.expect(utils.eql(metadata.url.url, "https://httpbin.org/get"));
 }
 
-// test "Parse Headers" {
-//     const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
-//
-//     const metadata = try CurlMetadata.parse_curl(curl_string);
-//
-//     try std.testing.expect(metadata.Headers.items.len == 2);
-// }
+test "Parse Headers" {
+    const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+
+    const metadata = try CurlMetadata.parse_curl(curl_string);
+
+    try std.testing.expect(metadata.Headers.items.len == 2);
+}
