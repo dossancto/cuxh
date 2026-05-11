@@ -10,8 +10,13 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     try builder.appendSlice(allocator, curl.method);
     try builder.append(allocator, ' ');
 
-    try builder.appendSlice(allocator, curl.url.url);
-    try builder.append(allocator, ' ');
+    if (curl.url.is_localhost()) {
+        try builder.appendSlice(allocator, curl.url.path);
+        try builder.append(allocator, ' ');
+    } else {
+        try builder.appendSlice(allocator, curl.url.url);
+        try builder.append(allocator, ' ');
+    }
 
     for (curl.headers.items) |header| {
         if (header.is_bearer_auth()) {
@@ -69,6 +74,20 @@ test "Generate xh command" {
     const xh_command = try curl_to_xh(metadata, allocator);
 
     const expected_xh_command = "xh POST https://httpbin.org/post 'accept':'application/json' --bearer '123123' --raw '{\"property1\": \"1\"}'";
+
+    try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
+}
+
+test "Generate xh command on localhost" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const curl_string = "curl -X POST \"http://localhost:5000/users\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+    const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
+    const xh_command = try curl_to_xh(metadata, allocator);
+
+    const expected_xh_command = "xh POST :5000/users 'accept':'application/json' --bearer '123123' --raw '{\"property1\": \"1\"}'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }

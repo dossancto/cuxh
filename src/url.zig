@@ -6,9 +6,10 @@ pub const URL = struct {
     host: []const u8,
     scheme: []const u8,
     port: ?u16,
+    path: []const u8,
 
     pub fn empty() URL {
-        return URL{ .url = "", .host = "", .scheme = "", .port = null };
+        return URL{ .url = "", .host = "", .scheme = "", .port = null, .path = "" };
     }
 
     pub fn parse(url: []const u8) ?URL {
@@ -26,11 +27,15 @@ pub const URL = struct {
             const port_str = cleaned_url[port_start .. port_start + port_end];
             port = std.fmt.parseInt(u16, port_str, 10) catch return null;
         }
+
+        const path_start = host_start + host_end;
+        const path = cleaned_url[path_start..];
+
         const host = cleaned_url[host_start .. host_start + host_end];
 
         const scheme = cleaned_url[0..scheme_end];
 
-        return URL{ .url = cleaned_url, .host = host, .scheme = scheme, .port = port };
+        return URL{ .url = cleaned_url, .host = host, .scheme = scheme, .port = port, .path = path };
     }
 
     pub fn is_localhost(self: URL) bool {
@@ -63,6 +68,7 @@ test "Parse non localhost url" {
 
     try std.testing.expect(utils.eql(parsed_url.url, "https://example.com/path/to/resource"));
     try std.testing.expect(utils.eql(parsed_url.host, "example.com"));
+    try std.testing.expect(utils.eql(parsed_url.path, "/path/to/resource"));
     try std.testing.expect(utils.eql(parsed_url.scheme, "https"));
     try std.testing.expect(parsed_url.is_localhost() == false);
 }
