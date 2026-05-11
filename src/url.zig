@@ -32,6 +32,10 @@ pub const URL = struct {
 
         return URL{ .url = cleaned_url, .host = host, .scheme = scheme, .port = port };
     }
+
+    pub fn is_localhost(self: URL) bool {
+        return utils.eql(self.host, "localhost") or utils.eql(self.host, "127.0.0.1");
+    }
 };
 
 pub fn is_url(text: []const u8) bool {
@@ -46,11 +50,21 @@ test "parse url" {
     try std.testing.expect(utils.eql(parsed_url.host, "localhost"));
     try std.testing.expect(utils.eql(parsed_url.scheme, "https"));
     try std.testing.expect(parsed_url.port == 8080);
+    try std.testing.expect(parsed_url.is_localhost());
 }
 
 test "parse without port" {
     const parsed_url = URL.parse("https://localhost/path/to/resource") orelse unreachable;
     try std.testing.expect(parsed_url.port == null);
+}
+
+test "Parse non localhost url" {
+    const parsed_url = URL.parse("https://example.com/path/to/resource") orelse unreachable;
+
+    try std.testing.expect(utils.eql(parsed_url.url, "https://example.com/path/to/resource"));
+    try std.testing.expect(utils.eql(parsed_url.host, "example.com"));
+    try std.testing.expect(utils.eql(parsed_url.scheme, "https"));
+    try std.testing.expect(parsed_url.is_localhost() == false);
 }
 
 test "Is url" {
