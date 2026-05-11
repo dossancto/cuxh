@@ -25,9 +25,6 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
         try builder.append(allocator, ' ');
     }
 
-    try builder.appendSlice(allocator, "--raw");
-    try builder.append(allocator, ' ');
-
     const formated_body = try std.fmt.allocPrint(
         allocator,
         "'{s}'",
@@ -35,8 +32,13 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     );
     defer allocator.free(formated_body);
 
-    try builder.appendSlice(allocator, formated_body);
-    try builder.append(allocator, ' ');
+    if (formated_body.len > 2) {
+        try builder.appendSlice(allocator, "--raw");
+        try builder.append(allocator, ' ');
+
+        try builder.appendSlice(allocator, formated_body);
+        try builder.append(allocator, ' ');
+    }
 
     const res = builder.items;
 
