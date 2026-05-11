@@ -45,6 +45,8 @@ pub const CurlMetadata = struct {
             if (url_manager.is_url(part)) {
                 if (url_manager.URL.parse(part)) |url| {
                     metadata.url = url;
+                } else {
+                    return error.InvalidURL;
                 }
             }
 
@@ -57,6 +59,10 @@ pub const CurlMetadata = struct {
 
         if (utils.eql(metadata.method, "")) {
             metadata.method = "GET";
+        }
+
+        if (url_manager.is_url(metadata.url.url) == false) {
+            return error.InvalidURL;
         }
 
         return metadata;
@@ -148,4 +154,12 @@ test "Parse Headers" {
     try std.testing.expect(utils.eql(metadata.Headers.items[1].name, "Authorization"));
 
     try std.testing.expect(metadata.Headers.items.len == 2);
+}
+
+test "Error on invalid url" {
+    const curl_string = "curl -X POST this_is_not_an_url -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+
+    const metadata = CurlMetadata.parse_curl(curl_string);
+
+    try std.testing.expect(metadata == error.InvalidURL);
 }
