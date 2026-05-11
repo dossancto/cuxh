@@ -2,6 +2,7 @@ const url_manager = @import("url.zig");
 const std = @import("std");
 const utils = @import("utils.zig");
 const http_headers = @import("headers.zig");
+const http_body = @import("http_body.zig");
 
 const SliceIterator = struct {
     slice: [][]const u8,
@@ -18,9 +19,14 @@ const SliceIterator = struct {
 pub const CurlMetadata = struct {
     method: []const u8,
     url: url_manager.URL,
-    Headers: std.ArrayList(http_headers.HttpHeader),
+    headers: std.ArrayList(http_headers.HttpHeader),
+    body: http_body.HttpBody,
 
     fn parse_curl(curl_string: []const u8) !CurlMetadata {
+        if (std.mem.containsAtLeast(u8, curl_string, 1, "curl") == false) {
+            return error.InvalidCurlString;
+        }
+
         const allocator = std.heap.page_allocator;
 
         if (valid_curl_string(curl_string) == false) {
@@ -29,7 +35,12 @@ pub const CurlMetadata = struct {
 
         var parts = try get_splited_parts(curl_string);
 
-        var metadata = CurlMetadata{ .method = "", .url = url_manager.URL.empty(), .Headers = .empty };
+        var metadata = CurlMetadata{
+            .method = "",
+            .url = url_manager.URL.empty(),
+            .headers = .empty,
+            .body = http_body.HttpBody.empty(),
+        };
 
         while (parts.next()) |part| {
             if (utils.eql(part, "curl")) {
@@ -53,7 +64,17 @@ pub const CurlMetadata = struct {
             if (utils.eql(part, "-H") or utils.eql(part, "--header")) {
                 const header_str = parts.next() orelse continue;
                 const header = http_headers.HttpHeader.parse(header_str) orelse continue;
-                try metadata.Headers.append(allocator, header);
+                try metadata.headers.append(allocator, header);
+            }
+
+            if (utils.eql(part, "--data") or utils.eql(part, "--data-raw") or utils.eql(part, "--data-binary") or utils.eql(part, "--data-ascii")) {
+                const body = parts.next() orelse continue;
+
+                if (http_body.HttpBody.from_string(body)) |parsed_body| {
+                    metadata.body = parsed_body;
+                } else {
+                    return error.InvalidBody;
+                }
             }
         }
 
@@ -150,10 +171,10 @@ test "Parse Headers" {
 
     const metadata = try CurlMetadata.parse_curl(curl_string);
 
-    try std.testing.expect(utils.eql(metadata.Headers.items[0].name, "accept"));
-    try std.testing.expect(utils.eql(metadata.Headers.items[1].name, "Authorization"));
+    try std.testing.expect(utils.eql(metadata.headers.items[0].name, "accept"));
+    try std.testing.expect(utils.eql(metadata.headers.items[1].name, "Authorization"));
 
-    try std.testing.expect(metadata.Headers.items.len == 2);
+    try std.testing.expect(metadata.headers.items.len == 2);
 }
 
 test "Error on invalid url" {
@@ -162,4 +183,22 @@ test "Error on invalid url" {
     const metadata = CurlMetadata.parse_curl(curl_string);
 
     try std.testing.expect(metadata == error.InvalidURL);
+}
+
+test "Error on invalid curl string" {
+    const curl_string = "This is not a valid curl command";
+
+    const metadata = CurlMetadata.parse_curl(curl_string);
+
+    try std.testing.expect(metadata == error.InvalidCurlString);
+}
+
+test "Parse Body" {
+    const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+
+    const metadata = try CurlMetadata.parse_curl(curl_string);
+
+    const body = metadata.body;
+
+    try std.testing.expect(utils.eql(body.content, "{\"property1\": \"1\"}"));
 }
