@@ -144,5 +144,8 @@ test "Parse Headers" {
 
     const metadata = try CurlMetadata.parse_curl(curl_string);
 
+    try std.testing.expect(utils.eql(metadata.Headers.items[0].name, "accept"));
+    try std.testing.expect(utils.eql(metadata.Headers.items[1].name, "Authorization"));
+
     try std.testing.expect(metadata.Headers.items.len == 2);
 }

@@ -11,7 +11,7 @@ pub const URL = struct {
     }
 
     pub fn parse(url: []const u8) ?URL {
-        const cleaned_url = clean_url(url);
+        const cleaned_url = utils.clean_escape(url);
         const scheme_end = std.mem.indexOf(u8, cleaned_url, ":") orelse return null;
         const host_start = scheme_end + 3;
         const host_end = std.mem.indexOf(u8, cleaned_url[host_start..], "/") orelse cleaned_url.len - host_start;
@@ -42,11 +42,4 @@ test "Is url" {
     try std.testing.expect(is_url("\"http://example.com\""));
     try std.testing.expect(is_url("\"https://example.com\""));
     try std.testing.expect(is_url("ftp://example.com") == false);
-}
-
-fn clean_url(url: []const u8) []const u8 {
-    if (std.mem.startsWith(u8, url, "\"") and std.mem.endsWith(u8, url, "\"")) {
-        return url[1 .. url.len - 1];
-    }
-    return url;
 }
