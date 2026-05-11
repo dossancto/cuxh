@@ -22,10 +22,6 @@ pub const CurlMetadata = struct {
     headers: std.ArrayList(http_headers.HttpHeader),
     body: http_body.HttpBody,
 
-    pub fn deinit(self: *CurlMetadata, allocator: std.mem.Allocator) void {
-        self.headers.deinit(allocator);
-    }
-
     pub fn parse_curl(curl_string: []const u8, allocator: std.mem.Allocator) !CurlMetadata {
         if (valid_curl_string(curl_string) == false) {
             return error.InvalidCurlString;
