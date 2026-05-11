@@ -22,7 +22,7 @@ pub const CurlMetadata = struct {
     headers: std.ArrayList(http_headers.HttpHeader),
     body: http_body.HttpBody,
 
-    fn parse_curl(curl_string: []const u8) !CurlMetadata {
+    pub fn parse_curl(curl_string: []const u8) !CurlMetadata {
         if (std.mem.containsAtLeast(u8, curl_string, 1, "curl") == false) {
             return error.InvalidCurlString;
         }
