@@ -14,6 +14,17 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     try builder.append(allocator, ' ');
 
     for (curl.headers.items) |header| {
+        if (header.is_bearer_auth()) {
+            const token = header.get_bearer_token() orelse continue;
+
+            try builder.appendSlice(allocator, "--bearer");
+            try builder.append(allocator, ' ');
+
+            try builder.appendSlice(allocator, token);
+            try builder.append(allocator, ' ');
+            continue;
+        }
+
         const formated_header = try std.fmt.allocPrint(
             allocator,
             "'{s}':'{s}'",
@@ -57,7 +68,7 @@ test "Generate xh command" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST https://httpbin.org/post 'accept':'application/json' 'Authorization':'Bearer 123' --raw '{\"property1\": \"1\"}'";
+    const expected_xh_command = "xh POST https://httpbin.org/post 'accept':'application/json' --bearer '123123' --raw '{\"property1\": \"1\"}'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }

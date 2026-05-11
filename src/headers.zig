@@ -17,6 +17,48 @@ pub const HttpHeader = struct {
             .value = utils.clean_escape(value),
         };
     }
+
+    pub fn is_auth_header(self: HttpHeader) bool {
+        return std.mem.containsAtLeast(u8, self.name, 1, "Authorization");
+    }
+
+    pub fn is_bearer_auth(self: HttpHeader) bool {
+        return self.is_auth_header() and std.mem.containsAtLeast(u8, self.value, 1, "Bearer");
+    }
+
+    pub fn get_bearer_token(self: HttpHeader) ?[]const u8 {
+        if (self.is_bearer_auth() == false) return null;
+
+        var parts = std.mem.splitScalar(u8, self.value, ' ');
+
+        const allocator = std.heap.page_allocator;
+
+        var result = std.ArrayList(u8).empty;
+        defer result.deinit(allocator);
+
+        while (parts.next()) |part| {
+            if (utils.eql(part, "Bearer")) {
+                continue;
+            }
+
+            result.appendSlice(allocator, part) catch {
+                return null;
+            };
+
+            result.appendSlice(allocator, part) catch {
+                return null;
+            };
+        }
+        const formated_token = std.fmt.allocPrint(
+            allocator,
+            "'{s}'",
+            .{result.items},
+        ) catch {
+            return null;
+        };
+
+        return formated_token;
+    }
 };
 
 test "parse header" {
