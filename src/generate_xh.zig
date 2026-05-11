@@ -25,14 +25,15 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
         try builder.append(allocator, ' ');
     }
 
-    const formated_body = try std.fmt.allocPrint(
-        allocator,
-        "'{s}'",
-        .{curl.body.content},
-    );
-    defer allocator.free(formated_body);
+    if (curl.body.content.len > 0) {
+        const formated_body = try std.fmt.allocPrint(
+            allocator,
+            "'{s}'",
+            .{curl.body.content},
+        );
 
-    if (formated_body.len > 2) {
+        defer allocator.free(formated_body);
+
         try builder.appendSlice(allocator, "--raw");
         try builder.append(allocator, ' ');
 
