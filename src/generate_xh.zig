@@ -73,7 +73,5 @@ test "Generate xh command" {
 
     const expected_xh_command = "xh POST https://httpbin.org/post --raw '{\"property1\": \"1\"}' 'accept':'application/json' 'Authorization':'Bearer 123'";
 
-    std.debug.print("{s}\n", .{xh_command});
-    std.debug.print("{s}\n", .{expected_xh_command});
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }

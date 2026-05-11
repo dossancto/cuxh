@@ -3,12 +3,14 @@ const std = @import("std");
 const url = @import("url.zig");
 const utils = @import("utils.zig");
 const curl_handler = @import("curl_handler.zig");
+const generate_xh = @import("generate_xh.zig");
 const Io = std.Io;
 
 test {
     _ = curl_handler;
     _ = url;
     _ = utils;
+    _ = generate_xh;
 }
 
 /// This is a documentation comment to explain the `printAnotherMessage` function below.
