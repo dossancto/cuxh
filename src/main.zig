@@ -13,8 +13,10 @@ pub fn main(init: std.process.Init) !void {
     const allocator = arena.allocator();
 
     var builder = std.ArrayList(u8).empty;
+    defer builder.deinit(allocator);
 
     const args = try init.minimal.args.toSlice(allocator);
+    defer allocator.free(args);
 
     var first_item = true;
 
@@ -31,6 +33,7 @@ pub fn main(init: std.process.Init) !void {
             continue;
         }
         const str = std.mem.trim(u8, arg, " ");
+        defer allocator.free(str);
         builder.appendSlice(allocator, str) catch return error.AllocationFailed;
         try builder.append(allocator, ' ');
     }
@@ -38,12 +41,12 @@ pub fn main(init: std.process.Init) !void {
     const curl_string = builder.items;
 
     const curl_metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
+    defer allocator.free(curl_metadata.headers.items);
 
     const xh_command = try xh_manager.curl_to_xh(curl_metadata, allocator);
+    defer allocator.free(xh_command);
 
-    var threaded: std.Io.Threaded = .init(allocator, .{});
-    defer threaded.deinit();
-    const io = threaded.io();
+    const io = init.io;
 
     const out: Io.File = .stdout();
     try out.writeStreamingAll(io, xh_command);
