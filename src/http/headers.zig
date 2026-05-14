@@ -22,7 +22,7 @@ pub const HttpHeader = struct {
         const lower_case_name = try std.ascii.allocLowerString(allocator, self.name);
         defer allocator.free(lower_case_name);
 
-        return std.mem.containsAtLeast(u8, lower_case_name, 1, "user-agent") or std.mem.containsAtLeast(u8, lower_case_name, 1, "referer") or std.mem.containsAtLeast(u8, lower_case_name, 1, "accept-language") or std.mem.containsAtLeast(u8, lower_case_name, 1, "sec-gpc") or std.mem.containsAtLeast(u8, lower_case_name, 1, "connection") or std.mem.containsAtLeast(u8, lower_case_name, 1, "sec-fetch") or std.mem.containsAtLeast(u8, lower_case_name, 1, "priority") or std.mem.containsAtLeast(u8, lower_case_name, 1, "te") or std.mem.containsAtLeast(u8, lower_case_name, 1, "origin") or std.mem.containsAtLeast(u8, lower_case_name, 1, "accept-encoding");
+        return std.mem.containsAtLeast(u8, lower_case_name, 1, "user-agent") or std.mem.containsAtLeast(u8, lower_case_name, 1, "referer") or std.mem.containsAtLeast(u8, lower_case_name, 1, "accept") or std.mem.containsAtLeast(u8, lower_case_name, 1, "accept-language") or std.mem.containsAtLeast(u8, lower_case_name, 1, "sec-gpc") or std.mem.containsAtLeast(u8, lower_case_name, 1, "connection") or std.mem.containsAtLeast(u8, lower_case_name, 1, "sec-fetch") or std.mem.containsAtLeast(u8, lower_case_name, 1, "priority") or std.mem.containsAtLeast(u8, lower_case_name, 1, "te") or std.mem.containsAtLeast(u8, lower_case_name, 1, "origin") or std.mem.containsAtLeast(u8, lower_case_name, 1, "accept-encoding");
     }
 
     pub fn is_auth_header(self: HttpHeader) bool {
