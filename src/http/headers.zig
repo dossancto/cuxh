@@ -51,10 +51,6 @@ pub const HttpHeader = struct {
             result.appendSlice(allocator, part) catch {
                 return null;
             };
-
-            result.appendSlice(allocator, part) catch {
-                return null;
-            };
         }
         const formated_token = std.fmt.allocPrint(
             allocator,
@@ -87,4 +83,12 @@ test "Check if should filter the header" {
     const allocator = std.testing.allocator;
 
     try std.testing.expect(try header.is_browser_only_header(allocator) == true);
+}
+
+test "Extract Baerer Token" {
+    const header = HttpHeader.parse("Authorization: Bearer 123") orelse unreachable;
+
+    const token = header.get_bearer_token() orelse unreachable;
+
+    try std.testing.expect(std.mem.eql(u8, token, "'123'"));
 }
