@@ -18,29 +18,6 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
         try builder.append(allocator, ' ');
     }
 
-    for (curl.headers.items) |header| {
-        if (header.is_bearer_auth()) {
-            const token = header.get_bearer_token() orelse continue;
-
-            try builder.appendSlice(allocator, "--bearer");
-            try builder.append(allocator, ' ');
-
-            try builder.appendSlice(allocator, token);
-            try builder.append(allocator, ' ');
-            continue;
-        }
-
-        const formated_header = try std.fmt.allocPrint(
-            allocator,
-            "'{s}':'{s}'",
-            .{ header.name, header.value },
-        );
-        defer allocator.free(formated_header);
-
-        try builder.appendSlice(allocator, formated_header);
-        try builder.append(allocator, ' ');
-    }
-
     if (curl.body.content.len > 0) {
         const formated_body = try std.fmt.allocPrint(
             allocator,
@@ -54,6 +31,35 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
         try builder.append(allocator, ' ');
 
         try builder.appendSlice(allocator, formated_body);
+        try builder.append(allocator, ' ');
+    }
+
+    for (curl.headers.items) |header| {
+        if (header.is_bearer_auth()) {
+            const token = header.get_bearer_token() orelse continue;
+
+            try builder.appendSlice(allocator, "--bearer");
+            try builder.append(allocator, ' ');
+
+            try builder.appendSlice(allocator, token);
+            try builder.append(allocator, ' ');
+            continue;
+        }
+
+        const should_filter_header = header.is_browser_only_header(allocator) catch continue;
+
+        if (should_filter_header == true) {
+            continue;
+        }
+
+        const formated_header = try std.fmt.allocPrint(
+            allocator,
+            "'{s}':'{s}'",
+            .{ header.name, header.value },
+        );
+        defer allocator.free(formated_header);
+
+        try builder.appendSlice(allocator, formated_header);
         try builder.append(allocator, ' ');
     }
 
