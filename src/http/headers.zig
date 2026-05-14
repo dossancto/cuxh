@@ -1,5 +1,5 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
 pub const HttpHeader = struct {
     name: []const u8,
@@ -37,7 +37,7 @@ pub const HttpHeader = struct {
         defer result.deinit(allocator);
 
         while (parts.next()) |part| {
-            if (utils.eql(part, "Bearer")) {
+            if (std.mem.eql(u8, part, "Bearer")) {
                 continue;
             }
 

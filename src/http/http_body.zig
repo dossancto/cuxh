@@ -1,5 +1,5 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
 pub const HttpBody = struct {
     content: []const u8,
@@ -28,10 +28,10 @@ pub const HttpBody = struct {
 
 test "HttpBody from string" {
     const body = HttpBody.from_string("Hello, World!").?;
-    try std.testing.expect(utils.eql(body.content, "Hello, World!"));
+    try std.testing.expect(std.mem.eql(u8, body.content, "Hello, World!"));
 }
 
 test "HttpBody from json string" {
     const body = HttpBody.from_string("'{\"property1\": \"1\"}'").?;
-    try std.testing.expect(utils.eql(body.content, "{\"property1\": \"1\"}"));
+    try std.testing.expect(std.mem.eql(u8, body.content, "{\"property1\": \"1\"}"));
 }

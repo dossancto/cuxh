@@ -1,5 +1,5 @@
-const curl_handler = @import("curl_handler.zig");
 const std = @import("std");
+const curl_handler = @import("../curl/curl_handler.zig");
 
 pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator) ![]const u8 {
     var builder = std.ArrayList(u8).empty;

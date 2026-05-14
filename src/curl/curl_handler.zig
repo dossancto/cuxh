@@ -1,8 +1,7 @@
-const url_manager = @import("url.zig");
 const std = @import("std");
-const utils = @import("utils.zig");
-const http_headers = @import("headers.zig");
-const http_body = @import("http_body.zig");
+const url_manager = @import("../http/url.zig");
+const http_headers = @import("../http/headers.zig");
+const http_body = @import("../http/http_body.zig");
 
 const SliceIterator = struct {
     slice: [][]const u8,
@@ -38,11 +37,11 @@ pub const CurlMetadata = struct {
         };
 
         while (parts.next()) |part| {
-            if (utils.eql(part, "curl")) {
+            if (std.mem.eql(u8, part, "curl")) {
                 continue;
             }
 
-            if (utils.eql(part, "-X")) {
+            if (std.mem.eql(u8, part, "-X")) {
                 const method = parts.next() orelse continue;
                 metadata.method = method;
                 continue;
@@ -56,13 +55,13 @@ pub const CurlMetadata = struct {
                 }
             }
 
-            if (utils.eql(part, "-H") or utils.eql(part, "--header")) {
+            if (std.mem.eql(u8, part, "-H") or std.mem.eql(u8, part, "--header")) {
                 const header_str = parts.next() orelse continue;
                 const header = http_headers.HttpHeader.parse(header_str) orelse continue;
                 try metadata.headers.append(allocator, header);
             }
 
-            if (utils.eql(part, "--data") or utils.eql(part, "--data-raw") or utils.eql(part, "--data-binary") or utils.eql(part, "--data-ascii")) {
+            if (std.mem.eql(u8, part, "--data") or std.mem.eql(u8, part, "--data-raw") or std.mem.eql(u8, part, "--data-binary") or std.mem.eql(u8, part, "--data-ascii")) {
                 const body = parts.next() orelse continue;
 
                 if (http_body.HttpBody.from_string(body)) |parsed_body| {
@@ -73,7 +72,7 @@ pub const CurlMetadata = struct {
             }
         }
 
-        if (utils.eql(metadata.method, "")) {
+        if (std.mem.eql(u8, metadata.method, "")) {
             metadata.method = "GET";
         }
 
@@ -148,8 +147,8 @@ test "parse_curl" {
 
     const metadata = try CurlMetadata.parse_curl(curl_string, allocator);
 
-    try std.testing.expect(utils.eql(metadata.method, "POST"));
-    try std.testing.expect(utils.eql(metadata.url.url, "https://httpbin.org/post"));
+    try std.testing.expect(std.mem.eql(u8, metadata.method, "POST"));
+    try std.testing.expect(std.mem.eql(u8, metadata.url.url, "https://httpbin.org/post"));
 }
 
 test "CurlMetadata.parse_curl with no method" {
@@ -158,8 +157,8 @@ test "CurlMetadata.parse_curl with no method" {
 
     const metadata = try CurlMetadata.parse_curl(curl_string, allocator);
 
-    try std.testing.expect(utils.eql(metadata.method, "GET"));
-    try std.testing.expect(utils.eql(metadata.url.url, "https://httpbin.org/get"));
+    try std.testing.expect(std.mem.eql(u8, metadata.method, "GET"));
+    try std.testing.expect(std.mem.eql(u8, metadata.url.url, "https://httpbin.org/get"));
 }
 
 test "Parse Headers" {
@@ -168,8 +167,8 @@ test "Parse Headers" {
 
     const metadata = try CurlMetadata.parse_curl(curl_string, allocator);
 
-    try std.testing.expect(utils.eql(metadata.headers.items[0].name, "accept"));
-    try std.testing.expect(utils.eql(metadata.headers.items[1].name, "Authorization"));
+    try std.testing.expect(std.mem.eql(u8, metadata.headers.items[0].name, "accept"));
+    try std.testing.expect(std.mem.eql(u8, metadata.headers.items[1].name, "Authorization"));
 
     try std.testing.expect(metadata.headers.items.len == 2);
 }
@@ -200,5 +199,5 @@ test "Parse Body" {
 
     const body = metadata.body;
 
-    try std.testing.expect(utils.eql(body.content, "{\"property1\": \"1\"}"));
+    try std.testing.expect(std.mem.eql(u8, body.content, "{\"property1\": \"1\"}"));
 }

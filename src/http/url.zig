@@ -1,5 +1,5 @@
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("../utils.zig");
 
 pub const URL = struct {
     url: []const u8,
@@ -39,7 +39,7 @@ pub const URL = struct {
     }
 
     pub fn is_localhost(self: URL) bool {
-        return utils.eql(self.host, "localhost") or utils.eql(self.host, "127.0.0.1");
+        return std.mem.eql(u8, self.host, "localhost") or std.mem.eql(u8, self.host, "127.0.0.1");
     }
 };
 
@@ -51,9 +51,9 @@ pub fn is_url(text: []const u8) bool {
 test "parse url" {
     const parsed_url = URL.parse("https://localhost:8080/path/to/resource") orelse unreachable;
 
-    try std.testing.expect(utils.eql(parsed_url.url, "https://localhost:8080/path/to/resource"));
-    try std.testing.expect(utils.eql(parsed_url.host, "localhost"));
-    try std.testing.expect(utils.eql(parsed_url.scheme, "https"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.url, "https://localhost:8080/path/to/resource"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.host, "localhost"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.scheme, "https"));
     try std.testing.expect(parsed_url.port == 8080);
     try std.testing.expect(parsed_url.is_localhost());
 }
@@ -66,10 +66,10 @@ test "parse without port" {
 test "Parse non localhost url" {
     const parsed_url = URL.parse("https://example.com/path/to/resource") orelse unreachable;
 
-    try std.testing.expect(utils.eql(parsed_url.url, "https://example.com/path/to/resource"));
-    try std.testing.expect(utils.eql(parsed_url.host, "example.com"));
-    try std.testing.expect(utils.eql(parsed_url.path, "/path/to/resource"));
-    try std.testing.expect(utils.eql(parsed_url.scheme, "https"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.url, "https://example.com/path/to/resource"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.host, "example.com"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.path, "/path/to/resource"));
+    try std.testing.expect(std.mem.eql(u8, parsed_url.scheme, "https"));
     try std.testing.expect(parsed_url.is_localhost() == false);
 }
 

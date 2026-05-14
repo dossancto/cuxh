@@ -1,9 +1,13 @@
 const std = @import("std");
 const Io = std.Io;
-const url = @import("url.zig");
+
+const url = @import("http/url.zig");
+
 const utils = @import("utils.zig");
-const xh_manager = @import("generate_xh.zig");
-const curl_handler = @import("curl_handler.zig");
+
+const xh_manager = @import("./transformer/generate_xh.zig");
+
+const curl_handler = @import("curl/curl_handler.zig");
 
 const cuxh = @import("cuxh");
 
