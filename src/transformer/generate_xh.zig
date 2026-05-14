@@ -15,8 +15,10 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     }
     try builder.append(allocator, ' ');
 
-    try builder.appendSlice(allocator, curl.method);
-    try builder.append(allocator, ' ');
+    if (std.mem.eql(u8, curl.method, "GET") == false) {
+        try builder.appendSlice(allocator, curl.method);
+        try builder.append(allocator, ' ');
+    }
 
     if (curl.url.is_localhost()) {
         try builder.appendSlice(allocator, curl.url.path);
