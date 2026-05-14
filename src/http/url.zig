@@ -38,6 +38,14 @@ pub const URL = struct {
         return URL{ .url = cleaned_url, .host = host, .scheme = scheme, .port = port, .path = path };
     }
 
+    pub fn is_http_protocol(self: URL) bool {
+        return std.mem.containsAtLeast(u8, self.scheme, 1, "http");
+    }
+
+    pub fn is_secure_protocol(self: URL) bool {
+        return std.mem.containsAtLeast(u8, self.scheme, 1, "https") or std.mem.containsAtLeast(u8, self.scheme, 1, "wss");
+    }
+
     pub fn is_localhost(self: URL) bool {
         return std.mem.eql(u8, self.host, "localhost") or std.mem.eql(u8, self.host, "127.0.0.1");
     }
