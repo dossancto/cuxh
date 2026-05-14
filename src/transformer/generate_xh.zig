@@ -79,7 +79,7 @@ test "Generate xh command" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST https://httpbin.org/post 'accept':'application/json' --bearer '123123' --raw '{\"property1\": \"1\"}'";
+    const expected_xh_command = "xh POST https://httpbin.org/post --raw '{\"property1\": \"1\"}' 'accept':'application/json' --bearer '123123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
@@ -93,7 +93,7 @@ test "Generate xh command on localhost" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST :5000/users 'accept':'application/json' --bearer '123123' --raw '{\"property1\": \"1\"}'";
+    const expected_xh_command = "xh POST :5000/users --raw '{\"property1\": \"1\"}' 'accept':'application/json' --bearer '123123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
