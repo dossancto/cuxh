@@ -18,6 +18,10 @@ pub const HttpHeader = struct {
         };
     }
 
+    pub fn init(name: []const u8, value: []const u8) HttpHeader {
+        return HttpHeader{ .name = name, .value = value, };
+    }
+
     pub fn is_browser_only_header(self: HttpHeader, allocator: std.mem.Allocator) !bool {
         const lower_case_name = try std.ascii.allocLowerString(allocator, self.name);
         defer allocator.free(lower_case_name);

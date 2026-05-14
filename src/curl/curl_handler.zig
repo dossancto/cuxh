@@ -61,6 +61,24 @@ pub const CurlMetadata = struct {
                 try metadata.headers.append(allocator, header);
             }
 
+            if (std.mem.eql(u8, part, "--oauth2-bearer")) {
+                const token = parts.next() orelse continue;
+                defer allocator.free(token);
+
+                const formated_token = std.fmt.allocPrint(
+                    allocator,
+                    "Bearer {s}",
+                    .{token},
+                ) catch {
+                    continue;
+                };
+
+                const header = http_headers.HttpHeader.init("Authorization", formated_token);
+                try metadata.headers.append(allocator, header);
+
+                continue;
+            }
+
             if (std.mem.eql(u8, part, "--data") or std.mem.eql(u8, part, "--data-raw") or std.mem.eql(u8, part, "--data-binary") or std.mem.eql(u8, part, "--data-ascii")) {
                 const body = parts.next() orelse continue;
 
@@ -194,6 +212,17 @@ test "Error on invalid curl string" {
 test "Parse Body" {
     const allocator = std.heap.page_allocator;
     const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' -H 'Authorization: Bearer 123'";
+
+    const metadata = try CurlMetadata.parse_curl(curl_string, allocator);
+
+    const body = metadata.body;
+
+    try std.testing.expect(std.mem.eql(u8, body.content, "{\"property1\": \"1\"}"));
+}
+
+test "Parse header with --oauth2-bearer" {
+    const allocator = std.heap.page_allocator;
+    const curl_string = "curl -X POST \"https://httpbin.org/post\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\"}' --oauth2-bearer 123";
 
     const metadata = try CurlMetadata.parse_curl(curl_string, allocator);
 
