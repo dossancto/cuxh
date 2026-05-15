@@ -1,4 +1,5 @@
 const std = @import("std");
+const utils = @import("../utils.zig");
 
 pub fn has_any_neasted_property(allocator: std.mem.Allocator, text: []const u8) !bool {
     const parsed = try std.json.parseFromSlice(std.json.Value, allocator, text, .{});
@@ -25,9 +26,11 @@ pub const HttpBodyField = struct {
     field: []const u8,
     value: []const u8,
     raw: bool,
+    encoded: bool,
 
     pub fn from_string(allocator: std.mem.Allocator, text: []const u8) ![]HttpBodyField {
-        const parsed = try std.json.parseFromSlice(std.json.Value, allocator, text, .{});
+        const clean_text = utils.clean_escape(text);
+        const parsed = try std.json.parseFromSlice(std.json.Value, allocator, clean_text, .{});
 
         var items = std.ArrayList(HttpBodyField).empty;
         errdefer items.deinit(allocator);
@@ -39,13 +42,34 @@ pub const HttpBodyField = struct {
             const val = entry.value_ptr.*;
 
             switch (val) {
-                .array => return error.CantHaveNeastedKeyValueProps,
-                .object => return error.CantHaveNeastedKeyValueProps,
+                .array => |a| {
+                    const values_array = a.items;
+                    const res = try std.json.Stringify.valueAlloc(allocator, values_array, .{});
+
+                    try items.append(allocator, HttpBodyField{
+                        .field = key,
+                        .value = res,
+                        .raw = true,
+                        .encoded = true,
+                    });
+                },
+                .object => |o| {
+                    const values_array = o.get(".");
+                    const res = try std.json.Stringify.valueAlloc(allocator, values_array, .{});
+
+                    try items.append(allocator, HttpBodyField{
+                        .field = key,
+                        .value = res,
+                        .raw = true,
+                        .encoded = true,
+                    });
+                },
                 .string => |s| {
                     try items.append(allocator, HttpBodyField{
                         .field = key,
                         .value = s,
                         .raw = false,
+                        .encoded = true,
                     });
                 },
                 .null => {
@@ -53,6 +77,7 @@ pub const HttpBodyField = struct {
                         .field = key,
                         .value = "null",
                         .raw = true,
+                        .encoded = false,
                     });
                 },
                 .bool => |b| {
@@ -60,6 +85,7 @@ pub const HttpBodyField = struct {
                         .field = key,
                         .value = if (b) "true" else "false",
                         .raw = true,
+                        .encoded = false,
                     });
                 },
                 .integer => |i| {
@@ -68,6 +94,7 @@ pub const HttpBodyField = struct {
                         .field = key,
                         .value = i_string,
                         .raw = true,
+                        .encoded = false,
                     });
                 },
                 .float => |f| {
@@ -76,6 +103,7 @@ pub const HttpBodyField = struct {
                         .field = key,
                         .value = f_string,
                         .raw = true,
+                        .encoded = false,
                     });
                 },
                 .number_string => |s| {
@@ -83,6 +111,7 @@ pub const HttpBodyField = struct {
                         .field = key,
                         .value = s,
                         .raw = false,
+                        .encoded = false,
                     });
                 },
             }
@@ -170,4 +199,32 @@ test "Parse properties" {
     const number_field = items[4];
     try std.testing.expect(std.mem.eql(u8, number_field.field, "number"));
     try std.testing.expect(std.mem.eql(u8, number_field.value, "12"));
+}
+
+test "Parse complex object" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const json_text =
+        \\{
+        \\  "title": "My title",
+        \\  "items": [
+        \\    {
+        \\      "name": "Item 1",
+        \\      "description": "lorem"
+        \\    }
+        \\  ]
+        \\}
+    ;
+
+    try std.testing.expect(try has_any_neasted_property(allocator, json_text) == true);
+
+    const properties = try HttpBodyField.from_string(allocator, json_text);
+
+    try std.testing.expect(properties.len == 2);
+
+    const title_field = properties[0];
+    try std.testing.expect(std.mem.eql(u8, title_field.field, "title"));
+    try std.testing.expect(std.mem.eql(u8, title_field.value, "My title"));
 }

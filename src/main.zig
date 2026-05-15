@@ -14,16 +14,15 @@ const cuxh = @import("cuxh");
 fn read_full_stream(allocator: std.mem.Allocator, io: std.Io) ![]u8 {
     var stdin_file = Io.File.stdin();
 
-    var fifo_buffer: [4096]u8 = undefined;
+    var fifo_buffer: [4096 * 2]u8 = undefined;
     var reader = stdin_file.reader(io, &fifo_buffer);
 
     var output = std.ArrayList(u8).empty;
 
-    var chunk_buf: [4096]u8 = undefined;
     while (true) {
-        const amt = try reader.interface.readSliceShort(&chunk_buf);
+        const amt = try reader.interface.readSliceShort(&fifo_buffer);
         if (amt == 0) break; // EOF reached safely
-        try output.appendSlice(allocator, chunk_buf[0..amt]);
+        try output.appendSlice(allocator, fifo_buffer[0..amt]);
     }
 
     return output.items;

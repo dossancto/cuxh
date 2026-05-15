@@ -29,33 +29,28 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     }
 
     if (curl.body.content.len > 0) {
-        if (try curl.body.has_nested_properties(allocator) == false) {
-            const fields = try curl.body.get_fields(allocator);
-            defer allocator.free(fields);
+        const fields = try curl.body.get_fields(allocator);
+        defer allocator.free(fields);
 
-            for (fields) |properties| {
-                try builder.appendSlice(allocator, properties.field);
-                if (properties.raw) {
-                    try builder.appendSlice(allocator, ":=");
-                } else {
-                    try builder.append(allocator, '=');
-                }
-                try builder.appendSlice(allocator, properties.value);
-                try builder.append(allocator, ' ');
+        for (fields) |properties| {
+            try builder.appendSlice(allocator, properties.field);
+            if (properties.raw) {
+                try builder.appendSlice(allocator, ":=");
+            } else {
+                try builder.append(allocator, '=');
             }
-        } else {
-            const formated_body = try std.fmt.allocPrint(
-                allocator,
-                "'{s}'",
-                .{curl.body.content},
-            );
 
-            defer allocator.free(formated_body);
+            if (properties.encoded) {
+                const quoted_value = try std.fmt.allocPrint(
+                    allocator,
+                    "'{s}'",
+                    .{properties.value},
+                );
+                try builder.appendSlice(allocator, quoted_value);
+            } else {
+                try builder.appendSlice(allocator, properties.value);
+            }
 
-            try builder.appendSlice(allocator, "--raw");
-            try builder.append(allocator, ' ');
-
-            try builder.appendSlice(allocator, formated_body);
             try builder.append(allocator, ' ');
         }
     }
@@ -105,7 +100,7 @@ test "Generate xh command" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xhs POST https://httpbin.org/post property1=1 --bearer '123'";
+    const expected_xh_command = "xhs POST https://httpbin.org/post property1='1' --bearer '123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
@@ -119,7 +114,21 @@ test "Generate xh command on localhost" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST :5000/users property1=1 --bearer '123'";
+    const expected_xh_command = "xh POST :5000/users property1='1' --bearer '123'";
+
+    try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
+}
+
+test "Generate xh command with neasted properties" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const curl_string = "curl -X POST \"http://localhost:5000/users\" -H  \"accept: application/json\" --data-raw '{\"property1\": \"1\",\"property2\": [\"123\"]}' -H 'Authorization: Bearer 123'";
+    const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
+    const xh_command = try curl_to_xh(metadata, allocator);
+
+    const expected_xh_command = "xh POST :5000/users property1='1' property2:='[\"123\"]' --bearer '123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
