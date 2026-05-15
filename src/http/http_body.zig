@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("../utils.zig");
+const http_field = @import("./http_body_field.zig");
 
 pub const HttpBody = struct {
     content: []const u8,
@@ -19,10 +20,12 @@ pub const HttpBody = struct {
         };
     }
 
-    pub fn has_nested_properties(self: HttpBody) bool {
-        _ = self;
-        // TODO: Implement a more robust check for nested properties, possibly by checking for JSON or XML structures
-        return false;
+    pub fn has_nested_properties(self: HttpBody, allocator: std.mem.Allocator) !bool {
+        return try http_field.has_any_neasted_property(allocator, self.content);
+    }
+
+    pub fn get_fields(self: HttpBody, allocator: std.mem.Allocator) ![]http_field.HttpBodyField {
+        return try http_field.HttpBodyField.from_string(allocator, self.content);
     }
 };
 

@@ -29,19 +29,35 @@ pub fn curl_to_xh(curl: curl_handler.CurlMetadata, allocator: std.mem.Allocator)
     }
 
     if (curl.body.content.len > 0) {
-        const formated_body = try std.fmt.allocPrint(
-            allocator,
-            "'{s}'",
-            .{curl.body.content},
-        );
+        if (try curl.body.has_nested_properties(allocator) == false) {
+            const fields = try curl.body.get_fields(allocator);
+            defer allocator.free(fields);
 
-        defer allocator.free(formated_body);
+            for (fields) |properties| {
+                try builder.appendSlice(allocator, properties.field);
+                if (properties.raw) {
+                    try builder.appendSlice(allocator, ":=");
+                } else {
+                    try builder.append(allocator, '=');
+                }
+                try builder.appendSlice(allocator, properties.value);
+                try builder.append(allocator, ' ');
+            }
+        } else {
+            const formated_body = try std.fmt.allocPrint(
+                allocator,
+                "'{s}'",
+                .{curl.body.content},
+            );
 
-        try builder.appendSlice(allocator, "--raw");
-        try builder.append(allocator, ' ');
+            defer allocator.free(formated_body);
 
-        try builder.appendSlice(allocator, formated_body);
-        try builder.append(allocator, ' ');
+            try builder.appendSlice(allocator, "--raw");
+            try builder.append(allocator, ' ');
+
+            try builder.appendSlice(allocator, formated_body);
+            try builder.append(allocator, ' ');
+        }
     }
 
     for (curl.headers.items) |header| {
@@ -89,7 +105,7 @@ test "Generate xh command" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xhs POST https://httpbin.org/post --raw '{\"property1\": \"1\"}' --bearer '123'";
+    const expected_xh_command = "xhs POST https://httpbin.org/post property1=1 --bearer '123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
@@ -103,7 +119,7 @@ test "Generate xh command on localhost" {
     const metadata = try curl_handler.CurlMetadata.parse_curl(curl_string, allocator);
     const xh_command = try curl_to_xh(metadata, allocator);
 
-    const expected_xh_command = "xh POST :5000/users --raw '{\"property1\": \"1\"}' --bearer '123'";
+    const expected_xh_command = "xh POST :5000/users property1=1 --bearer '123'";
 
     try std.testing.expect(std.mem.eql(u8, xh_command, expected_xh_command));
 }
